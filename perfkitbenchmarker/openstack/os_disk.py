@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import logging
+import string
 import time
 
 from perfkitbenchmarker.openstack import utils as os_utils
@@ -37,7 +38,7 @@ class OpenStackDisk(disk.BaseDisk):
         self.zone = zone
         self.project = project
         self.device = ""
-        self.virtual_disks = (c for c in "cdefghijklmnopqrstuvwxyz")
+        self.virtual_disk_idx = 1
 
     def _Create(self):
         self._disk = self.__nclient.volumes.create(self.disk_size,
@@ -47,6 +48,7 @@ class OpenStackDisk(disk.BaseDisk):
                                                    )
 
         is_unavailable = True
+        volume = None
         while is_unavailable:
             time.sleep(1)
             volume = self.__nclient.volumes.get(self._disk.id)
@@ -83,7 +85,8 @@ class OpenStackDisk(disk.BaseDisk):
     def Attach(self, vm):
         self.attached_vm_name = vm.name
         self.attached_vm_id = vm.id
-        device_hint_name = "/dev/vd" + self.virtual_disks.next()
+        self.virtual_disk_idx += 1
+        device_hint_name = "/dev/vd" + string.ascii_lowercase[self.virtual_disk_idx]
         result = self.__nclient.volumes.create_server_volume(vm.id,
                                                              self._disk.id,
                                                              device_hint_name)
