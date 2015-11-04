@@ -22,7 +22,7 @@ import json
 from perfkitbenchmarker import disk
 from perfkitbenchmarker import flags
 from perfkitbenchmarker import vm_util
-from perfkitbenchmarker.gcp import util
+from perfkitbenchmarker.drivers.gcp import util
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string(

@@ -41,9 +41,9 @@ from perfkitbenchmarker import flags
 from perfkitbenchmarker import linux_virtual_machine
 from perfkitbenchmarker import virtual_machine
 from perfkitbenchmarker import vm_util
-from perfkitbenchmarker.rackspace import rackspace_disk
-from perfkitbenchmarker.rackspace import rackspace_machine_types as rax
-from perfkitbenchmarker.rackspace import util
+from perfkitbenchmarker.drivers.rackspace import rackspace_disk
+from perfkitbenchmarker.drivers.rackspace import rackspace_machine_types as rax
+from perfkitbenchmarker.drivers.rackspace import util
 
 FLAGS = flags.FLAGS
 flags.DEFINE_boolean(

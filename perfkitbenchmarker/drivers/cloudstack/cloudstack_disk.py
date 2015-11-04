@@ -16,13 +16,13 @@
 Disks can be created, deleted, attached to VMs, and detached from VMs.
 """
 
+import string
+import logging
+
 from perfkitbenchmarker import disk
 from perfkitbenchmarker import vm_util
 from perfkitbenchmarker import flags
-from perfkitbenchmarker.cloudstack import util
-
-import string
-import logging
+from perfkitbenchmarker.drivers.cloudstack import util
 
 FLAGS = flags.FLAGS
 

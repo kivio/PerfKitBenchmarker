@@ -16,7 +16,7 @@ import time
 
 from perfkitbenchmarker import flags
 from perfkitbenchmarker import network
-from perfkitbenchmarker.openstack import utils
+from perfkitbenchmarker.drivers.openstack import utils
 
 FLAGS = flags.FLAGS
 

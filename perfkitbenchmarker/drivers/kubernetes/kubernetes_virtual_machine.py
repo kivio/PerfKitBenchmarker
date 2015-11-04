@@ -14,10 +14,10 @@
 
 import base64
 import json
-import kubernetes_disk
 import logging
 import random
 
+import kubernetes_disk
 from perfkitbenchmarker import disk
 from perfkitbenchmarker import flags
 from perfkitbenchmarker import virtual_machine, linux_virtual_machine

@@ -30,8 +30,8 @@ from perfkitbenchmarker import linux_virtual_machine
 from perfkitbenchmarker import virtual_machine
 from perfkitbenchmarker import vm_util
 from perfkitbenchmarker import windows_virtual_machine
-from perfkitbenchmarker.aws import aws_disk
-from perfkitbenchmarker.aws import util
+from perfkitbenchmarker.drivers.aws import aws_disk
+from perfkitbenchmarker.drivers.aws import util
 
 FLAGS = flags.FLAGS
 

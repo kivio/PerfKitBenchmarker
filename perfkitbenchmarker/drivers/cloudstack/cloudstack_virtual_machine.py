@@ -17,15 +17,14 @@ library which calls the cloudstack API. For more information refer to
 the Cloudstack documentation at https://github.com/syed/PerfKitBenchmarker.git
 """
 
+import logging
+
 from perfkitbenchmarker import flags
 from perfkitbenchmarker import linux_virtual_machine as linux_vm
 from perfkitbenchmarker import virtual_machine
 from perfkitbenchmarker import vm_util
-from perfkitbenchmarker.cloudstack import cloudstack_disk
-from perfkitbenchmarker.cloudstack import util
-
-import logging
-
+from perfkitbenchmarker.drivers.cloudstack import cloudstack_disk
+from perfkitbenchmarker.drivers.cloudstack import util
 
 UBUNTU_IMAGE = 'Ubuntu 14.04.2 HVM base (64bit)'
 RHEL_IMAGE = 'CentOS 7 HVM base (64bit)'

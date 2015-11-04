@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from perfkitbenchmarker import events
-from perfkitbenchmarker.azure import util
+from perfkitbenchmarker.drivers.azure import util
 
 
 def _CheckAzureVersion(sender, parsed_flags):

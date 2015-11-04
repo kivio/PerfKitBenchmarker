@@ -23,8 +23,7 @@ import threading
 from perfkitbenchmarker import flags
 from perfkitbenchmarker import network
 from perfkitbenchmarker import vm_util
-from perfkitbenchmarker.rackspace import util
-
+from perfkitbenchmarker.drivers.rackspace import util
 
 FLAGS = flags.FLAGS
 flags.DEFINE_boolean(
