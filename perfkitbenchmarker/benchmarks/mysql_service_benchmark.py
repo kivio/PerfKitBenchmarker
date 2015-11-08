@@ -142,7 +142,7 @@ def CheckPrerequisites():
   Raises:
     ProviderNotSupportedError
   """
-  if FLAGS.cloud != 'GCP' and FLAGS.cloud != 'AWS':
+  if FLAGS.cloud != 'gcp' and FLAGS.cloud != 'aws':
     raise ProviderNotSupportedError('Provider %s is not supported yet.' %
                                     FLAGS.cloud)
 
@@ -802,8 +802,8 @@ class GoogleCloudSQLBenchmark(object):
 
 
 MYSQL_SERVICE_BENCHMARK_DICTIONARY = {
-    benchmark_spec_class.GCP: GoogleCloudSQLBenchmark(),
-    benchmark_spec_class.AWS: RDSMySQLBenchmark()}
+    benchmark_spec_class.gcp: GoogleCloudSQLBenchmark(),
+    benchmark_spec_class.aws: RDSMySQLBenchmark()}
 
 
 def Prepare(benchmark_spec):
