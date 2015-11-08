@@ -68,7 +68,6 @@ NETWORK = 'network'
 FIREWALL = 'firewall'
 
 FLAGS = flags.FLAGS
-import perfkitbenchmarker.providers as providers
 
 class Provider(object):
 
@@ -79,13 +78,14 @@ class Provider(object):
     def get_list():
         import os
         return [provider for provider in os.listdir(
-            os.path.dirname(providers.__file__)) if not provider.startswith('__')]
+            os.path.join(os.path.dirname(__file__), 'providers')) if not provider.startswith('__')]
 
     @property
     def module(self):
+        import imp
         try:
-            return providers.__dict__[self._cloud]
-        except KeyError:
+            return imp.load_source(self._cloud, 'providers')
+        except ImportError:
             raise ImportError('provider {} not found!'.format(self._cloud))
 
     def __import_child_class(self, base_class, module, default=None, get_all=False):
