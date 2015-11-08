@@ -29,9 +29,8 @@ from perfkitbenchmarker import disk
 from perfkitbenchmarker import errors
 from perfkitbenchmarker import flags
 from perfkitbenchmarker import static_virtual_machine as static_vm
-from perfkitbenchmarker import virtual_machine
 from perfkitbenchmarker import vm_util
-
+from perfkitbenchmarker.provider import CloudProvider
 
 
 def PickleLock(lock):
@@ -69,67 +68,7 @@ FIREWALL = 'firewall'
 
 FLAGS = flags.FLAGS
 
-class Provider(object):
-
-    def __init__(self, cloud):
-        self._cloud = cloud
-
-    @staticmethod
-    def get_list():
-        import os
-        return [provider for provider in os.listdir(
-            os.path.join(os.path.dirname(__file__), 'providers')) if not provider.startswith('__')]
-
-    @property
-    def module(self):
-        import imp
-        try:
-            return imp.load_source(self._cloud, 'providers')
-        except ImportError:
-            raise ImportError('provider {} not found!'.format(self._cloud))
-
-    def __import_child_class(self, base_class, module, default=None, get_all=False):
-        if get_all:
-            result = []
-        try:
-            classes = dir(self.module.__dict__[module])
-            for klass in classes:
-                if isinstance(klass, base_class):
-                    if get_all:
-                        result.append(klass)
-                    else:
-                        return klass
-            if get_all:
-                return result
-        except KeyError:
-            return default
-
-    @property
-    def vm_classes(self):
-        from perfkitbenchmarker.virtual_machine import BaseVirtualMachine
-        return self.__import_child_class(BaseVirtualMachine, 'machine', [], get_all=True)
-
-    @property
-    def network(self):
-        from perfkitbenchmarker.network import BaseNetwork
-        return self.__import_child_class(BaseNetwork, 'network')
-
-    @property
-    def firewall(self):
-        from perfkitbenchmarker.network import BaseFirewall
-        return self.__import_child_class(BaseFirewall, 'network')
-
-    @property
-    def machine_spec(self):
-        from perfkitbenchmarker.virtual_machine import BaseVmSpec
-        return self.__import_child_class(BaseVmSpec, 'machine', BaseVmSpec)
-
-    @property
-    def disk_spec(self):
-        from perfkitbenchmarker.disk import BaseDiskSpec
-        return self.__import_child_class(BaseDiskSpec, 'disk', BaseDiskSpec)
-
-flags.DEFINE_enum('cloud', 'gcp', Provider.get_list(), 'Name of the cloud to use.')
+flags.DEFINE_enum('cloud', 'gcp', CloudProvider.get_list(), 'Name of the cloud to use.')
 flags.DEFINE_enum(
     'os_type', DEBIAN, [DEBIAN, RHEL, UBUNTU_CONTAINER, WINDOWS],
     'The VM\'s OS type. Ubuntu\'s os_type is "debian" because it is largely '
@@ -141,16 +80,6 @@ flags.DEFINE_string('scratch_dir', None,
                     'Base name for all scratch disk directories in the VM.'
                     'Upon creation, these directories will have numbers'
                     'appended to them (for example /scratch0, /scratch1, etc).')
-
-
-def _GetVmSpecClass(cloud):
-  """Gets the VmSpec class corresponding to the cloud."""
-  return Provider(cloud).machine_spec
-
-
-def _GetDiskSpecClass(cloud):
-  """Gets the DiskSpec class corresponding to the cloud."""
-  return Provider(cloud).disk_spec
 
 
 class BenchmarkSpec(object):
@@ -201,8 +130,8 @@ class BenchmarkSpec(object):
     """
     group_spec = self.config[VM_GROUPS][group_name]
     if not FLAGS[CLOUD].present and CLOUD in group_spec:
-      return group_spec[CLOUD]
-    return FLAGS.cloud
+      return CloudProvider(group_spec[CLOUD])
+    return CloudProvider(FLAGS.cloud)
 
   def _GetOsTypeForGroup(self, group_name):
     """Gets the OS type for a VM group by looking at flags and the config.
@@ -239,16 +168,16 @@ class BenchmarkSpec(object):
             vms.append(static_vm_class(vm_spec))
 
         os_type = self._GetOsTypeForGroup(group_name)
-        cloud = self._GetCloudForGroup(group_name)
+        cloud_provider = self._GetCloudForGroup(group_name)
 
         # Then create a VmSpec and possibly a DiskSpec which we can
         # use to create the remaining VMs.
-        vm_spec_class = _GetVmSpecClass(cloud)
-        vm_spec = vm_spec_class(**group_spec[VM_SPEC][cloud])
+        vm_spec_class = cloud_provider.machine_spec
+        vm_spec = vm_spec_class(**group_spec[VM_SPEC][cloud_provider.name])
 
         if DISK_SPEC in group_spec:
-          disk_spec_class = _GetDiskSpecClass(cloud)
-          disk_spec = disk_spec_class(**group_spec[DISK_SPEC][cloud])
+          disk_spec_class = cloud_provider.disk_spec
+          disk_spec = disk_spec_class(**group_spec[DISK_SPEC][cloud_provider.name])
           disk_spec.ApplyFlags(FLAGS)
         else:
           disk_spec = None
@@ -262,7 +191,7 @@ class BenchmarkSpec(object):
       # Create the remaining VMs using the specs we created earlier.
       for _ in xrange(vm_count - len(vms)):
         vm_spec.ApplyFlags(FLAGS)
-        vm = self._CreateVirtualMachine(vm_spec, os_type, cloud)
+        vm = cloud_provider.create_vm(vm_spec, os_type, self.networks, self.firewalls)
         if disk_spec:
           vm.disk_specs = [copy.copy(disk_spec) for _ in xrange(disk_count)]
           # In the event that we need to create multiple disks from the same
@@ -307,40 +236,6 @@ class BenchmarkSpec(object):
         logging.exception('Got an exception deleting networks. '
                           'Attempting to continue tearing down.')
     self.deleted = True
-
-  def _CreateVirtualMachine(self, vm_spec, os_type, cloud):
-    """Create a vm in zone.
-
-    Args:
-      vm_spec: A virtual_machine.BaseVmSpec object.
-      os_type: The type of operating system for the VM. See the flag of the
-          same name for more information.
-      cloud: The cloud for the VM. See the flag of the same name for more
-          information.
-    Returns:
-      A virtual_machine.BaseVirtualMachine object.
-    """
-    vm = static_vm.StaticVirtualMachine.GetStaticVirtualMachine()
-    if vm:
-      return vm
-
-    provider = Provider(cloud)
-    vm_classes = provider.vm_classes
-    if os_type not in vm_classes:
-      raise errors.Error(
-          'VMs of type %s" are not currently supported on cloud "%s".' %
-          (os_type, cloud))
-    vm_class = vm_classes[os_type]
-
-    network = None
-    if provider.network:
-        network = provider.network.GetNetwork(vm_spec.zone, self.networks)
-
-    firewall = None
-    if provider.firewall:
-        firewall = provider.firewall.GetFirewall(self.firewalls)
-
-    return vm_class(vm_spec, network, firewall)
 
   def PrepareVm(self, vm):
     """Creates a single VM and prepares a scratch disk if required.
