@@ -30,7 +30,7 @@ from perfkitbenchmarker import linux_virtual_machine
 from perfkitbenchmarker import virtual_machine
 from perfkitbenchmarker import vm_util
 from perfkitbenchmarker import windows_virtual_machine
-from perfkitbenchmarker.providers.aws import aws_disk
+from perfkitbenchmarker.providers.aws import disk
 from perfkitbenchmarker.providers.aws import util
 
 FLAGS = flags.FLAGS
@@ -284,7 +284,7 @@ class AwsVirtualMachine(virtual_machine.BaseVirtualMachine):
     # Instantiate the disk(s) that we want to create.
     disks = []
     for _ in range(disk_spec.num_striped_disks):
-      data_disk = aws_disk.AwsDisk(disk_spec, self.zone)
+      data_disk = disk.AwsDisk(disk_spec, self.zone)
       if disk_spec.disk_type == disk.LOCAL:
         data_disk.device_letter = chr(ord(DRIVE_START_LETTER) +
                                       self.local_disk_counter)

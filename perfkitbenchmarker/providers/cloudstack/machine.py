@@ -23,7 +23,7 @@ from perfkitbenchmarker import flags
 from perfkitbenchmarker import linux_virtual_machine as linux_vm
 from perfkitbenchmarker import virtual_machine
 from perfkitbenchmarker import vm_util
-from perfkitbenchmarker.providers.cloudstack import cloudstack_disk
+from perfkitbenchmarker.providers.cloudstack import disk
 from perfkitbenchmarker.providers.cloudstack import util
 
 UBUNTU_IMAGE = 'Ubuntu 14.04.2 HVM base (64bit)'
@@ -189,10 +189,10 @@ class CloudStackVirtualMachine(virtual_machine.BaseVirtualMachine):
     for i in xrange(disk_spec.num_striped_disks):
 
         name = 'disk-%s-%d-%d' % (self.name, i + 1, self.disk_counter)
-        scratch_disk = cloudstack_disk.CloudStackDisk(disk_spec,
-                                                      name,
-                                                      self.zone_id,
-                                                      self.project_id)
+        scratch_disk = disk.CloudStackDisk(disk_spec,
+                                           name,
+                                           self.zone_id,
+                                           self.project_id)
 
         self.disks.append(scratch_disk)
         self.disk_counter += 1

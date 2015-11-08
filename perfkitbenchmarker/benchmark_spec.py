@@ -31,26 +31,7 @@ from perfkitbenchmarker import flags
 from perfkitbenchmarker import static_virtual_machine as static_vm
 from perfkitbenchmarker import virtual_machine
 from perfkitbenchmarker import vm_util
-from perfkitbenchmarker.providers.aws import aws_disk
-from perfkitbenchmarker.providers.aws import aws_network
-from perfkitbenchmarker.providers.aws import aws_virtual_machine
-from perfkitbenchmarker.providers.azure import azure_network
-from perfkitbenchmarker.providers.azure import azure_virtual_machine
-from perfkitbenchmarker.providers.cloudstack import cloudstack_network as cs_nw
-from perfkitbenchmarker.providers.cloudstack import \
-    cloudstack_virtual_machine as cs_vm
-from perfkitbenchmarker.providers.digitalocean import \
-    digitalocean_virtual_machine as digitalocean_vm
-from perfkitbenchmarker.providers.gcp import gce_network
-from perfkitbenchmarker.providers.gcp import gce_virtual_machine as gce_vm
-from perfkitbenchmarker.providers.kubernetes import kubernetes_virtual_machine
-from perfkitbenchmarker.providers.openstack import \
-    os_network as openstack_network
-from perfkitbenchmarker.providers.openstack import \
-    os_virtual_machine as openstack_vm
-from perfkitbenchmarker.providers.rackspace import rackspace_network as rax_net
-from perfkitbenchmarker.providers.rackspace import \
-    rackspace_virtual_machine as rax_vm
+
 
 
 def PickleLock(lock):
@@ -78,14 +59,6 @@ STATIC_VMS = 'static_vms'
 VM_SPEC = 'vm_spec'
 DISK_SPEC = 'disk_spec'
 
-GCP = 'GCP'
-AZURE = 'Azure'
-AWS = 'AWS'
-KUBERNETES = 'Kubernetes'
-DIGITALOCEAN = 'DigitalOcean'
-OPENSTACK = 'OpenStack'
-CLOUDSTACK = 'CloudStack'
-RACKSPACE = 'Rackspace'
 DEBIAN = 'debian'
 RHEL = 'rhel'
 WINDOWS = 'windows'
@@ -93,83 +66,70 @@ UBUNTU_CONTAINER = 'ubuntu_container'
 VIRTUAL_MACHINE = 'virtual_machine'
 NETWORK = 'network'
 FIREWALL = 'firewall'
-CLASSES = {
-    GCP: {
-        VIRTUAL_MACHINE: {
-            DEBIAN: gce_vm.DebianBasedGceVirtualMachine,
-            RHEL: gce_vm.RhelBasedGceVirtualMachine,
-            UBUNTU_CONTAINER: gce_vm.ContainerizedGceVirtualMachine,
-            WINDOWS: gce_vm.WindowsGceVirtualMachine
-        },
-        FIREWALL: gce_network.GceFirewall,
-        NETWORK: gce_network.GceNetwork,
-        VM_SPEC: gce_vm.GceVmSpec
-    },
-    AZURE: {
-        VIRTUAL_MACHINE: {
-            DEBIAN: azure_virtual_machine.DebianBasedAzureVirtualMachine,
-            RHEL: azure_virtual_machine.RhelBasedAzureVirtualMachine,
-            WINDOWS: azure_virtual_machine.WindowsAzureVirtualMachine
-        },
-        NETWORK: azure_network.AzureNetwork,
-        FIREWALL: azure_network.AzureFirewall,
-    },
-    AWS: {
-        VIRTUAL_MACHINE: {
-            DEBIAN: aws_virtual_machine.DebianBasedAwsVirtualMachine,
-            RHEL: aws_virtual_machine.RhelBasedAwsVirtualMachine,
-            WINDOWS: aws_virtual_machine.WindowsAwsVirtualMachine
-        },
-        FIREWALL: aws_network.AwsFirewall,
-        NETWORK: aws_network.AwsNetwork,
-        DISK_SPEC: aws_disk.AwsDiskSpec
-    },
-    DIGITALOCEAN: {
-        VIRTUAL_MACHINE: {
-            DEBIAN:
-            digitalocean_vm.DebianBasedDigitalOceanVirtualMachine,
-            RHEL:
-            digitalocean_vm.RhelBasedDigitalOceanVirtualMachine,
-            UBUNTU_CONTAINER:
-            digitalocean_vm.ContainerizedDigitalOceanVirtualMachine,
-        },
-    },
-    KUBERNETES: {
-        VIRTUAL_MACHINE: {
-            DEBIAN:
-                kubernetes_virtual_machine.DebianBasedKubernetesVirtualMachine,
-            RHEL: kubernetes_virtual_machine.KubernetesVirtualMachine
-        },
-    },
-    OPENSTACK: {
-        VIRTUAL_MACHINE: {
-            DEBIAN: openstack_vm.DebianBasedOpenStackVirtualMachine,
-            RHEL: openstack_vm.OpenStackVirtualMachine
-        },
-        FIREWALL: openstack_network.OpenStackFirewall
-    },
-    CLOUDSTACK: {
-        VIRTUAL_MACHINE: {
-            DEBIAN: cs_vm.DebianBasedCloudStackVirtualMachine,
-            RHEL: cs_vm.CloudStackVirtualMachine
-        },
-        NETWORK: cs_nw.CloudStackNetwork
-    },
-    RACKSPACE: {
-        VIRTUAL_MACHINE: {
-            DEBIAN: rax_vm.DebianBasedRackspaceVirtualMachine,
-            RHEL: rax_vm.RhelBasedRackspaceVirtualMachine
-        },
-        FIREWALL: rax_net.RackspaceSecurityGroup
-    }
-}
 
 FLAGS = flags.FLAGS
+import perfkitbenchmarker.providers as providers
 
-flags.DEFINE_enum('cloud', GCP,
-                  [GCP, AZURE, AWS, DIGITALOCEAN, KUBERNETES, OPENSTACK,
-                   RACKSPACE, CLOUDSTACK],
-                  'Name of the cloud to use.')
+class Provider(object):
+
+    def __init__(self, cloud):
+        self._cloud = cloud
+
+    @staticmethod
+    def get_list():
+        import os
+        return [provider for provider in os.listdir(
+            os.path.dirname(providers.__file__)) if not provider.startswith('__')]
+
+    @property
+    def module(self):
+        try:
+            return providers.__dict__[self._cloud]
+        except KeyError:
+            raise ImportError('provider {} not found!'.format(self._cloud))
+
+    def __import_child_class(self, base_class, module, default=None, get_all=False):
+        if get_all:
+            result = []
+        try:
+            classes = dir(self.module.__dict__[module])
+            for klass in classes:
+                if isinstance(klass, base_class):
+                    if get_all:
+                        result.append(klass)
+                    else:
+                        return klass
+            if get_all:
+                return result
+        except KeyError:
+            return default
+
+    @property
+    def vm_classes(self):
+        from perfkitbenchmarker.virtual_machine import BaseVirtualMachine
+        return self.__import_child_class(BaseVirtualMachine, 'machine', [], get_all=True)
+
+    @property
+    def network(self):
+        from perfkitbenchmarker.network import BaseNetwork
+        return self.__import_child_class(BaseNetwork, 'network')
+
+    @property
+    def firewall(self):
+        from perfkitbenchmarker.network import BaseFirewall
+        return self.__import_child_class(BaseFirewall, 'network')
+
+    @property
+    def machine_spec(self):
+        from perfkitbenchmarker.virtual_machine import BaseVmSpec
+        return self.__import_child_class(BaseVmSpec, 'machine', BaseVmSpec)
+
+    @property
+    def disk_spec(self):
+        from perfkitbenchmarker.disk import BaseDiskSpec
+        return self.__import_child_class(BaseDiskSpec, 'disk', BaseDiskSpec)
+
+flags.DEFINE_enum('cloud', 'gcp', Provider.get_list(), 'Name of the cloud to use.')
 flags.DEFINE_enum(
     'os_type', DEBIAN, [DEBIAN, RHEL, UBUNTU_CONTAINER, WINDOWS],
     'The VM\'s OS type. Ubuntu\'s os_type is "debian" because it is largely '
@@ -185,12 +145,12 @@ flags.DEFINE_string('scratch_dir', None,
 
 def _GetVmSpecClass(cloud):
   """Gets the VmSpec class corresponding to the cloud."""
-  return CLASSES[cloud].get(VM_SPEC, virtual_machine.BaseVmSpec)
+  return Provider(cloud).machine_spec
 
 
 def _GetDiskSpecClass(cloud):
   """Gets the DiskSpec class corresponding to the cloud."""
-  return CLASSES[cloud].get(DISK_SPEC, disk.BaseDiskSpec)
+  return Provider(cloud).disk_spec
 
 
 class BenchmarkSpec(object):
@@ -364,24 +324,21 @@ class BenchmarkSpec(object):
     if vm:
       return vm
 
-    vm_classes = CLASSES[cloud][VIRTUAL_MACHINE]
+    provider = Provider(cloud)
+    vm_classes = provider.vm_classes
     if os_type not in vm_classes:
       raise errors.Error(
           'VMs of type %s" are not currently supported on cloud "%s".' %
           (os_type, cloud))
     vm_class = vm_classes[os_type]
 
-    if NETWORK in CLASSES[cloud]:
-      net_class = CLASSES[cloud][NETWORK]
-      network = net_class.GetNetwork(vm_spec.zone, self.networks)
-    else:
-      network = None
+    network = None
+    if provider.network:
+        network = provider.network.GetNetwork(vm_spec.zone, self.networks)
 
-    if FIREWALL in CLASSES[cloud]:
-      firewall_class = CLASSES[cloud][FIREWALL]
-      firewall = firewall_class.GetFirewall(self.firewalls)
-    else:
-      firewall = None
+    firewall = None
+    if provider.firewall:
+        firewall = provider.firewall.GetFirewall(self.firewalls)
 
     return vm_class(vm_spec, network, firewall)
 

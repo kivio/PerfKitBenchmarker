@@ -19,8 +19,8 @@ import time
 from perfkitbenchmarker import virtual_machine, linux_virtual_machine
 from perfkitbenchmarker import flags
 from perfkitbenchmarker import vm_util
-from perfkitbenchmarker.providers.openstack import os_disk
-from perfkitbenchmarker.providers.openstack import os_network
+from perfkitbenchmarker.providers.openstack import disk
+from perfkitbenchmarker.providers.openstack import network
 from perfkitbenchmarker.providers.openstack import utils as os_utils
 
 UBUNTU_IMAGE = 'ubuntu-14.04'
@@ -66,7 +66,7 @@ class OpenStackVirtualMachine(virtual_machine.BaseVirtualMachine):
         self.key_name = 'perfkit_key_%d_%s' % (self.instance_number,
                                                FLAGS.run_uri)
         self.client = os_utils.NovaClient()
-        self.public_network = os_network.OpenStackPublicNetwork(
+        self.public_network = network.OpenStackPublicNetwork(
             FLAGS.openstack_public_network
         )
         self.id = None
@@ -181,8 +181,8 @@ class OpenStackVirtualMachine(virtual_machine.BaseVirtualMachine):
 
     def CreateScratchDisk(self, disk_spec):
         name = '%s-scratch-%s' % (self.name, len(self.scratch_disks))
-        scratch_disk = os_disk.OpenStackDisk(disk_spec, name, self.zone,
-                                             self.project)
+        scratch_disk = disk.OpenStackDisk(disk_spec, name, self.zone,
+                                          self.project)
         self.scratch_disks.append(scratch_disk)
 
         scratch_disk.Create()

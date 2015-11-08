@@ -24,7 +24,7 @@ from perfkitbenchmarker import flags
 from perfkitbenchmarker import linux_virtual_machine
 from perfkitbenchmarker import virtual_machine
 from perfkitbenchmarker import vm_util
-from perfkitbenchmarker.providers.digitalocean import digitalocean_disk
+from perfkitbenchmarker.providers.digitalocean import disk
 from perfkitbenchmarker.providers.digitalocean import util
 
 FLAGS = flags.FLAGS
@@ -224,7 +224,7 @@ class DigitalOceanVirtualMachine(virtual_machine.BaseVirtualMachine):
     # anything.
     self.RemoteCommand('sudo mkdir -p {0} && sudo chown -R $USER:$USER {0}'
                        .format(disk_spec.mount_point))
-    self.scratch_disks.append(digitalocean_disk.DigitalOceanDisk(disk_spec))
+    self.scratch_disks.append(disk.DigitalOceanDisk(disk_spec))
 
 
 class ContainerizedDigitalOceanVirtualMachine(

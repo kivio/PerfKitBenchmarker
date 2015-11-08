@@ -41,9 +41,9 @@ from perfkitbenchmarker import flags
 from perfkitbenchmarker import linux_virtual_machine
 from perfkitbenchmarker import virtual_machine
 from perfkitbenchmarker import vm_util
-from perfkitbenchmarker.providers.rackspace import rackspace_disk
+from perfkitbenchmarker.providers.rackspace import disk
 from perfkitbenchmarker.providers.rackspace import \
-    rackspace_machine_types as rax
+    machine_types as rax
 from perfkitbenchmarker.providers.rackspace import util
 
 FLAGS = flags.FLAGS
@@ -301,7 +301,7 @@ class RackspaceVirtualMachine(virtual_machine.BaseVirtualMachine):
         self.SetupLocalDisks()
       disks = self._CreateLocalDisks(disk_spec)
     elif rackspace_disk_type == rax.ROOT_DISK:  # boot
-      boot_disk = rackspace_disk.RackspaceEphemeralDisk(
+      boot_disk = disk.RackspaceEphemeralDisk(
           disk_spec, boot_device['name'], is_root_disk=True)
       disks = [boot_disk]
     else:
@@ -315,11 +315,11 @@ class RackspaceVirtualMachine(virtual_machine.BaseVirtualMachine):
 
   def _CreateRemoteDisks(self, disk_spec):
     disks_names = ['%s-data-%s-%d-%d'
-                   % (self.name, rackspace_disk.DISK_TYPE[disk_spec.disk_type],
+                   % (self.name, disk.DISK_TYPE[disk_spec.disk_type],
                       len(self.scratch_disks), i)
                    for i in range(disk_spec.num_striped_disks)]
-    disks = [rackspace_disk.RackspaceRemoteDisk(disk_spec, name,
-                                                self.zone, self.image)
+    disks = [disk.RackspaceRemoteDisk(disk_spec, name,
+                                      self.zone, self.image)
              for name in disks_names]
     return disks
 
@@ -347,7 +347,7 @@ class RackspaceVirtualMachine(virtual_machine.BaseVirtualMachine):
     disks = []
     for i in range(disk_spec.num_striped_disks):
       local_device = extra_blk_devices[i]
-      local_disk = rackspace_disk.RackspaceEphemeralDisk(
+      local_disk = disk.RackspaceEphemeralDisk(
           disk_spec, local_device['name'])
       self.mounted_disks.add(local_device['name'])
       disks.append(local_disk)

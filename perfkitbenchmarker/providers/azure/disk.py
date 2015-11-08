@@ -28,7 +28,7 @@ import threading
 from perfkitbenchmarker import disk
 from perfkitbenchmarker import flags
 from perfkitbenchmarker import vm_util
-from perfkitbenchmarker.providers.azure import azure_network
+from perfkitbenchmarker.providers.azure import network
 
 AZURE_PATH = 'azure'
 
@@ -65,9 +65,9 @@ class AzureDisk(disk.BaseDisk):
     assert self.disk_type in DISK_TYPE, self.disk_type
 
     if self.disk_type == disk.REMOTE_SSD:
-      assert FLAGS.azure_storage_type == azure_network.PLRS
+      assert FLAGS.azure_storage_type == network.PLRS
     else:
-      assert FLAGS.azure_storage_type != azure_network.PLRS
+      assert FLAGS.azure_storage_type != network.PLRS
 
     with self._lock:
       create_cmd = [AZURE_PATH,

@@ -35,7 +35,7 @@ from perfkitbenchmarker import linux_virtual_machine as linux_vm
 from perfkitbenchmarker import virtual_machine
 from perfkitbenchmarker import vm_util
 from perfkitbenchmarker import windows_virtual_machine
-from perfkitbenchmarker.providers.gcp import gce_disk
+from perfkitbenchmarker.providers.gcp import disk
 from perfkitbenchmarker.providers.gcp import util
 
 flags.DEFINE_integer('gce_num_local_ssds', 0,
@@ -109,7 +109,7 @@ class GceVirtualMachine(virtual_machine.BaseVirtualMachine):
     self.project = vm_spec.project
     disk_spec = disk.BaseDiskSpec(
         disk_size=self.BOOT_DISK_SIZE_GB, disk_type=self.BOOT_DISK_TYPE)
-    self.boot_disk = gce_disk.GceDisk(
+    self.boot_disk = disk.GceDisk(
         disk_spec, self.name, self.zone, self.project, self.image)
     self.max_local_disks = vm_spec.num_local_ssds
     self.boot_metadata = {}
@@ -214,7 +214,7 @@ class GceVirtualMachine(virtual_machine.BaseVirtualMachine):
     for i in xrange(disk_spec.num_striped_disks):
       if disk_spec.disk_type == disk.LOCAL:
         name = 'local-ssd-%d' % self.local_disk_counter
-        data_disk = gce_disk.GceDisk(disk_spec, name, self.zone, self.project)
+        data_disk = disk.GceDisk(disk_spec, name, self.zone, self.project)
         # Local disk numbers start at 1 (0 is the system disk).
         data_disk.disk_number = self.local_disk_counter + 1
         self.local_disk_counter += 1
@@ -222,7 +222,7 @@ class GceVirtualMachine(virtual_machine.BaseVirtualMachine):
           raise errors.Error('Not enough local disks.')
       else:
         name = '%s-data-%d-%d' % (self.name, len(self.scratch_disks), i)
-        data_disk = gce_disk.GceDisk(disk_spec, name, self.zone, self.project)
+        data_disk = disk.GceDisk(disk_spec, name, self.zone, self.project)
         # Remote disk numbers start at 1+max_local_disks (0 is the system disk
         # and local disks occupy 1-max_local_disks).
         data_disk.disk_number = (self.remote_disk_counter +

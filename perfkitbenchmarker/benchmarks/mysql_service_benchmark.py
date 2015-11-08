@@ -37,7 +37,7 @@ from perfkitbenchmarker import configs
 from perfkitbenchmarker import flags
 from perfkitbenchmarker import sample
 from perfkitbenchmarker import vm_util
-from perfkitbenchmarker.providers.aws import aws_network
+from perfkitbenchmarker.providers.aws import network
 from perfkitbenchmarker.providers.aws import util
 
 FLAGS = flags.FLAGS
@@ -490,7 +490,7 @@ class RDSMySQLBenchmark(object):
 
     # Now create a new subnet in the zone that's different from where the VM is
     logging.info('Creating a second subnet in zone %s', new_subnet_zone)
-    new_subnet = aws_network.AwsSubnet(new_subnet_zone, vm.network.vpc.id,
+    new_subnet = network.AwsSubnet(new_subnet_zone, vm.network.vpc.id,
                                        '10.0.1.0/24')
     new_subnet.Create()
     logging.info('Successfully created a new subnet, subnet id is: %s',
